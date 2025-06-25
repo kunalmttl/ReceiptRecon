@@ -1,7 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
-
+const orderRoutes = require('./routes/orderRoutes'); 
 
 dotenv.config();
 
@@ -10,10 +10,14 @@ connectDB();
 
 const app = express();
 
+// --- MIDDLEWARE SETUP ---
+app.use(express.json({ limit: '10mb' })); // Body parser for JSON
 
-// test route
-app.get('/', (req, res) => 
-{
+// --- API ROUTES ---
+app.use('/api/orders', orderRoutes); 
+
+// --- TEST ROUTE FOR ROOT URL ---
+app.get('/', (req, res) => {
   res.send('Receipt Recon API is running...');
 });
 
