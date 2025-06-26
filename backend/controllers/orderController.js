@@ -57,15 +57,26 @@ const initiateReturn = async (req, res) =>
       });
     }
 
+    
+  // ================================================================
+  // HACKATHON/DEVELOPMENT NOTE: AI Service Simulation
+  // We are temporarily disabling the real call to the Python service.
+  // We will pretend the AI check is always successful.
+  // REMEMBER to uncomment this section when the real AI service is ready!
+  // ================================================================
 
+  /*
     // Step 1: AI DOES ITS WORKS
-    const aiResponse = await axios.post('http://192.168.117.230:5000/predict',        // The URL of your Python AI service 
+    const aiResponse = await axios.post( `${process.env.AI_SERVICE_URL}/predict`,        // The URL of your Python AI service 
     {   
         expected_product_id: itemToReturn.product.toString(),
         image_data: image_data,
     });
 
     const { match } = aiResponse.data;
+    */
+
+    const match = true;
 
     // Step 2: CHECK IF GOOD PRODUCT
     if (match) 
