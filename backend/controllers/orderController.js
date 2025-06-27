@@ -22,10 +22,23 @@ const getMyOrders = async (req, res) => {
 
 const initiateReturn = async (req, res) => 
 {
-        // get data from user request 
+  let parsedBody;
+
+  try 
+  {
+    parsedBody = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } 
+  catch (error) 
+  {
+    return res.status(400).json({ message: "Invalid JSON format in request body" });
+  }
+
+
+  // get data from user request 
         
   const { orderId, itemId } = req.params;
-  const { reason, image_data } = req.body; 
+  const { reason, image_data } = parsedBody; 
+
 
   try 
   {
