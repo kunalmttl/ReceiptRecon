@@ -1,16 +1,18 @@
 {
-  "SKU_IRON_BD": {
-    "product_name": "Havells Classic Steam Iron",
-    "brand_text": ["Havells", "Classic"],
-    "reference_logo_path": "reference_data/logos/Havells_Logo.svg.png",
-    "description": "A white steam iron with a silver non-stick soleplate and a prominent temperature dial.",
+  "SKU_IRON_BD": 
+  {
+    "product_name": "Black+Decker Classic Steam Iron",
+    "brand_text": ["Black+Decker", "Classic"],
+    "reference_logo_path": "reference_data/logos/SKU_IRON_BD.png",
+    "pristine_description": "A new-in-box, white steam iron with a clean, silver non-stick soleplate, and a prominent temperature dial. There are no scratches, scuffs, water spots, or signs of use.",
     "expected_accessories": ["user manual", "small water cup"]
   },
-  "SKU_PS5_GAME": {
-    "product_name": "PlayStation 5 Game Disc",
-    "brand_text": ["PS5", "PlayStation"],
-    "reference_logo_path": "reference_data/logos/SKU_PS5_GAME.png",
-    "description": "A standard blue plastic game case containing a Blu-ray disc.",
-    "expected_accessories": ["game disc"]
+  "SKU_HELMET_YAM": 
+  {
+    "product_name": "Yamaha Steelbird Helmet",
+    "brand_text": ["YAMAHA", "Steelbird"],
+    "reference_logo_path": "reference_data/logos/SKU_HELMET_YAM.png",
+    "pristine_description": "A glossy black full-face motorcycle helmet with a clear wraparound transparent visor, Yamaha logo.",
+    "expected_accessories": ["helmet only"]
   }
 }

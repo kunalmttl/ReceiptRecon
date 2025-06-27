@@ -105,20 +105,25 @@ def call_vlm_expert(prompt: str, image_parts: list) -> dict:
 
 def execute_branding_check(branding_image_b64: str, brand_info: dict) -> dict:
     """
-    Stage 1: Verifies the product's branding and logo.
-    Targets "Switcheroo" and knockoff fraud.
+    Stage 1: Verifies the product's branding and logo using an advanced prompt.
+    This new logic handles cases where only a logo OR only text is present.
     """
     logo_path = os.path.join(base_dir, brand_info["reference_logo_path"])
     with open(logo_path, "rb") as f:
         ref_logo_b64 = encode_image(f.read())
 
+    # The new, smarter prompt that tells the AI how to think like an expert.
     prompt = (
-        "You are a meticulous Brand Authenticator. Your task is to verify a product's branding from a user's photo (Image 1) "
-        "against an official reference logo (Image 2). Your analysis must be precise. "
-        "First, perform OCR on Image 1 to extract all text. "
-        "Second, visually compare the logo's font, style, shape, and alignment in Image 1 against Image 2. "
-        "The match must be exact. Any deviation in style or text constitutes a failure. "
-        "Return your findings as a JSON object with two keys: 'extracted_text' (string) and 'visual_match' (boolean)."
+        "You are a Brand Logo Authenticator. Your task is to verify a product's branding from a user's real-world photo (Image 1) "
+        "against a clean, official reference logo (Image 2). Your judgment must be precise.\n\n"
+        "**Instructions:**\n"
+        "1. **Analyze Visuals:** Critically compare the core design elements of the logo symbol in Image 1 to Image 2. "
+        "Focus ONLY on the geometric shape, proportions, and alignment of the logo's components. "
+        "You MUST IGNORE differences in color (e.g., black-on-white vs. white-on-black), background textures, and lighting reflections.\n"
+        "2. **Analyze Text:** Perform OCR on Image 1 to find any text. It is acceptable if no text is found.\n"
+        "3. **Return JSON:** Provide your findings STRICTLY as a JSON object with two keys: "
+        "'visual_match' (boolean: true if the core logo SHAPE is identical, otherwise false) and "
+        "'extracted_text' (string: the text found, or an empty string if none)."
     )
     
     image_parts = [
@@ -127,59 +132,89 @@ def execute_branding_check(branding_image_b64: str, brand_info: dict) -> dict:
     ]
     
     analysis = call_vlm_expert(prompt, image_parts)
-    if "error" in analysis: return {"passed": False, "reason": "AI service failed during branding check.", "details": analysis}
+    if "error" in analysis: 
+        return {"passed": False, "reason": "AI service failed during branding check.", "details": analysis}
     
-    text = analysis.get("extracted_text", "")
-    visual = analysis.get("visual_match", False)
-    text_match = any(b.lower() in text.lower() for b in brand_info["brand_text"])
+    # --- NEW, MORE FLEXIBLE LOGIC ---
+    found_text = analysis.get("extracted_text", "")
+    visual_match_passed = analysis.get("visual_match", False)
     
-    passed = text_match and visual
-    reason = "Branding authentication passed." if passed else "Branding does not match official references. Suspected knockoff or wrong item."
-
+    # Text check passes if ANY of the expected brand names are found.
+    text_match_passed = any(b.lower() in found_text.lower() for b in brand_info["brand_text"])
+    
+    # The overall stage passes if EITHER the visual logo is a match OR the text is a match.
+    # An authentic product can have just the symbol or just the text.
+    passed = visual_match_passed or text_match_passed
+    
+    reason = "Branding authentication passed."
+    if not passed:
+        reason = "Branding does not match official references. Suspected knockoff or wrong item."
+    elif visual_match_passed and not text_match_passed:
+        reason = "Visual logo matched, no text found. Authentication passed based on symbol."
+    elif not visual_match_passed and text_match_passed:
+        reason = "Brand text matched, but visual logo is different. Authentication passed based on text."
+        
     return {
         "passed": passed,
         "reason": reason,
-        "details": 
-        {
-            "text_check_passed": text_match,
-            "visual_check_passed": visual,
-            "found_text": text
+        "details": {
+            "text_check_passed": text_match_passed,
+            "visual_check_passed": visual_match_passed,
+            "found_text": found_text
         }
     }
+
 
 def execute_condition_check(condition_images_b64: list, brand_info: dict) -> dict:
     """
-    Stage 2: Analyzes the product's physical condition from multiple angles.
-    Targets "Wardrobing" (rental fraud) and returning used/damaged items.
+    Stage 2: Iteratively analyzes multiple images for physical condition.
+    This is more robust and avoids API limits on the number of images per request.
     """
-    prompt = (
-        f"You are a strict Quality Control Inspector. You are examining a returned '{brand_info['product_name']}'. "
-        f"The only acceptable condition is brand new, described as: '{brand_info['pristine_description']}'. "
-        "Analyze the following series of images which show the product from multiple angles. Synthesize your findings across ALL images. "
-        "Report any and all signs of use, including but not limited to: scratches, stains, wrinkles, scuffs, dirt, or physical damage. "
-        "Based on your complete analysis, conclude if the item's overall condition is 'NEW' or 'USED'. "
-        "Return your findings as a JSON object with two keys: 'assessed_condition' ('NEW' or 'USED') and 'condition_notes' (string detailing all flaws found)."
-    )
-
-    image_parts = [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}} for img_b64 in condition_images_b64]
+    overall_passed = True
+    aggregated_notes = []
     
-    analysis = call_vlm_expert(prompt, image_parts)
-    if "error" in analysis: return {"passed": False, "reason": "AI service failed during condition check.", "details": analysis}
+    # Loop through each condition image and inspect it individually
+    for i, img_b64 in enumerate(condition_images_b64):
+        print(f"  -> Inspecting condition image {i+1}/{len(condition_images_b64)}...")
+        
+        # A more focused prompt for a single angle
+        prompt = (
+            f"You are a Quality Control Inspector examining one specific angle of a returned '{brand_info['product_name']}'. "
+            f"A new item is described as: '{brand_info['pristine_description']}'. "
+            "Analyze THIS single photo. Is the condition shown 'NEW' or 'USED'? Look for any scratches, stains, wrinkles, or damage. "
+            "Return a JSON object with two keys: 'assessed_condition' ('NEW' or 'USED') and 'condition_notes' (string describing findings for this specific view)."
+        )
 
-    condition = analysis.get("assessed_condition", "USED")
-    passed = condition == "NEW"
-    reason = "Product condition is consistent with a new item." if passed else f"Product failed inspection. Signs of use detected: {analysis.get('condition_notes', 'N/A')}"
+        image_parts = [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}]
+        analysis = call_vlm_expert(prompt, image_parts)
+
+        if "error" in analysis:
+            aggregated_notes.append(f"AI inspection failed for angle {i+1}.")
+            overall_passed = False
+            continue
+
+        angle_condition = analysis.get("assessed_condition", "USED")
+        if angle_condition == "USED":
+            overall_passed = False # If any angle fails, the whole check fails
+        
+        notes = analysis.get("condition_notes", "No specific notes.")
+        aggregated_notes.append(f"Angle {i+1}: {notes} (Condition: {angle_condition})")
+
+    # Construct the final report based on the loop's findings
+    final_reason = "Product condition is consistent with a new item across all angles."
+    if not overall_passed:
+        final_reason = "Product failed inspection. Signs of use detected in one or more views."
     
-    return 
-    {
-        "passed": passed,
-        "reason": reason,
-        "details": 
-        {
-            "condition": condition,
-            "notes": analysis.get("condition_notes", "")
+    return {
+        "passed": overall_passed,
+        "reason": final_reason,
+        "details": {
+            "inspected_angles": len(condition_images_b64),
+            "inspection_notes": aggregated_notes
         }
     }
+
+
 
 def execute_contents_check(contents_image_b64: str, brand_info: dict) -> dict:
     """
@@ -277,7 +312,7 @@ def run_standalone_test():
     Loads all 6 required images from the test folder for a single product.
     """
     print("--- Running Full Standalone Inspection Test ---")
-    sku_to_test = "SKU_IRON_BD"
+    sku_to_test = "SKU_HELMET_YAM"
     
     # Define the directory where test images for one product are stored
     test_product_dir = os.path.join(base_dir, 'test_images', 'prod1')
