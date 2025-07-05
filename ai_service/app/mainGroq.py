@@ -17,6 +17,8 @@ import uuid
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from groq import Groq
+
 
 # --- SETUP AND CONFIGURATION ---
 
@@ -29,15 +31,29 @@ app = Flask(__name__)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 base_dir = os.path.dirname(script_dir) # Go up one level from /app to /ai_service
 
-# Configure API constants from environment variables.
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
-HEADERS = {
-    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-    "HTTP-Referer": os.getenv("YOUR_SITE_URL"),
-    "X-Title": os.getenv("YOUR_SITE_NAME"),
-}
-AI_MODEL_NAME = "google/gemini-2.0-flash-exp:free"
+
+
+# --- NEW: Setup the Groq API Client ---
+try:
+    groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    AI_MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
+except Exception as e:
+    print(f"FATAL ERROR: Could not initialize Groq client. Check your API key. Error: {e}")
+    exit(1)
+
+
+
+# # Configure API constants from environment variables.
+# OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# API_URL = "https://openrouter.ai/api/v1/chat/completions"
+# HEADERS = {
+#     "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+#     "HTTP-Referer": os.getenv("YOUR_SITE_URL"),
+#     "X-Title": os.getenv("YOUR_SITE_NAME"),
+# }
+# AI_MODEL_NAME = "google/gemini-2.0-flash-exp:free"
+
+
 
 # Load the "Ground Truth" database on startup.
 brand_info_path = os.path.join(base_dir, 'reference_data', 'brand_info.json')
@@ -55,36 +71,61 @@ def encode_image(image_bytes: bytes) -> str:
     """Encodes raw image bytes into a base64 string."""
     return base64.b64encode(image_bytes).decode('utf-8')
 
-def call_vlm_expert(prompt: str, image_parts: list) -> dict:
+def call_groq_vlm_expert(prompt: str, image_parts: list) -> dict:
     """
-    Acts as the central communication hub with the AI model.
-    Constructs the request payload and sends it to the OpenRouter API.
+    Constructs the payload and calls the Groq API using the official SDK.
     """
-    data = {
-        "model": AI_MODEL_NAME,
-        "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}] + image_parts}],
-        "response_format": {"type": "json_object"}
-    }
+    messages = [{"role": "user", "content": [{"type": "text", "text": prompt}] + image_parts}]
     
     try:
-        response = requests.post(API_URL, headers=HEADERS, json=data, timeout=90)
-        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-        content_str = response.json()['choices'][0]['message']['content']
-        
-        # Robustly clean markdown fences from the AI's response before parsing.
-        if content_str.startswith("```json"):
-            content_str = content_str[7:-3].strip()
-        elif content_str.startswith("```"):
-            content_str = content_str[3:-3].strip()
-            
+        completion = groq_client.chat.completions.create(
+            model=AI_MODEL_NAME,
+            messages=messages,
+            response_format={"type": "json_object"},
+            temperature=0.2, # Lower temperature for more predictable, factual JSON
+            max_tokens=1024
+        )
+        content_str = completion.choices[0].message.content
         return json.loads(content_str)
         
-    except requests.exceptions.RequestException as e:
-        print(f"API Request Error: {e}")
+    except Exception as e:
+        print(f"Groq API Error: {e}")
         return {"error": "AI API request failed", "details": str(e)}
-    except (json.JSONDecodeError, KeyError, IndexError) as e:
-        print(f"API Response Parsing Error: {e}")
-        return {"error": "Failed to parse AI response", "details": str(e)}
+
+
+
+# def call_vlm_expert(prompt: str, image_parts: list) -> dict:
+#     """
+#     Acts as the central communication hub with the AI model.
+#     Constructs the request payload and sends it to the OpenRouter API.
+#     """
+#     data = {
+#         "model": AI_MODEL_NAME,
+#         "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}] + image_parts}],
+#         "response_format": {"type": "json_object"}
+#     }
+    
+#     try:
+#         response = requests.post(API_URL, headers=HEADERS, json=data, timeout=90)
+#         response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+#         content_str = response.json()['choices'][0]['message']['content']
+        
+#         # Robustly clean markdown fences from the AI's response before parsing.
+#         if content_str.startswith("```json"):
+#             content_str = content_str[7:-3].strip()
+#         elif content_str.startswith("```"):
+#             content_str = content_str[3:-3].strip()
+            
+#         return json.loads(content_str)
+        
+#     except requests.exceptions.RequestException as e:
+#         print(f"API Request Error: {e}")
+#         return {"error": "AI API request failed", "details": str(e)}
+#     except (json.JSONDecodeError, KeyError, IndexError) as e:
+#         print(f"API Response Parsing Error: {e}")
+#         return {"error": "Failed to parse AI response", "details": str(e)}
+
+
 
 
 # ==============================================================================
@@ -117,7 +158,8 @@ def execute_branding_check(branding_image_b64: str, brand_info: dict) -> dict:
         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{ref_logo_b64}"}}
     ]
     
-    analysis = call_vlm_expert(prompt, image_parts)
+#     analysis = call_vlm_expert(prompt, image_parts)
+    analysis = call_groq_vlm_expert(prompt, image_parts)
     if "error" in analysis:
         return {"passed": False, "reason": "AI service failed during branding check.", "details": analysis}
 
@@ -152,7 +194,8 @@ def inspect_single_angle(img_b64: str, index: int, brand_info: dict) -> tuple:
         "Respond in JSON with keys: 'assessed_condition' ('NEW' or 'USED') and 'condition_notes' (string)."
     )
     image_parts = [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}]
-    analysis = call_vlm_expert(prompt, image_parts)
+#     analysis = call_vlm_expert(prompt, image_parts)
+    analysis = call_groq_vlm_expert(prompt, image_parts)
 
     if "error" in analysis:
         return (False, f"Angle {index+1}: AI inspection failed.", "ERROR")
@@ -210,7 +253,8 @@ def execute_contents_check(contents_image_b64: str, brand_info: dict) -> dict:
         "Respond in JSON with boolean keys: 'main_product_present' and 'all_accessories_present'."
     )
     image_parts = [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{contents_image_b64}"}}]
-    analysis = call_vlm_expert(prompt, image_parts)
+#     analysis = call_vlm_expert(prompt, image_parts)
+    analysis = call_groq_vlm_expert(prompt, image_parts)
 
     if "error" in analysis:
         return {"passed": False, "reason": "AI service failed during contents check.", "details": analysis}
@@ -329,7 +373,7 @@ def run_standalone_test():
 if __name__ == '__main__':
     # Use this to test the logic locally. It requires the 'test_images/prod1/' folder
     # to be set up with all 6 required images.
-    # run_standalone_test()
+    run_standalone_test()
     
     # Use this to run the actual Flask web server for the Node.js backend to call.
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    # app.run(host='0.0.0.0', port=5000, debug=False)
