@@ -38,8 +38,9 @@ const initiateReturn = async (req, res) =>
   {
     // --- 1. DATA VALIDATION & EXTRACTION ---
 
-    const { orderId, productId } = req.params;
+    const { orderId, itemId } = req.params; 
     const { reason, base64_images_encoding } = req.body;
+
     
     // validation
     if (!Array.isArray(base64_images_encoding) || base64_images_encoding.length !== 3) 
@@ -54,18 +55,22 @@ const initiateReturn = async (req, res) =>
     
     // --- 2. DATABASE VALIDATION (90-DAY CHECK & ITEM CHECK) ---
     
-    const order = await Order.findById(orderId).populate('purchasedItems.product');
-    if (!order) 
-    {
+    const order = await Order.findById(orderId);
+    if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+
     // find the *specific* sub-document ID within the `purchasedItems` array for that order.
-    const itemToReturn = order.purchasedItems.find(item => item.product._id.toString() === productId);
+    const itemToReturn = order.purchasedItems.find(item => item._id.toString() === itemId);
+
     if (!itemToReturn) 
     {
       return res.status(404).json({ message: 'This specific product was not found in the specified order.' });
     }
+
+    await order.populate('purchasedItems.product');
+
     
     // Check if the item has already been returned
     if (itemToReturn.returnInfo && itemToReturn.returnInfo.status !== 'NONE') 
