@@ -20,7 +20,7 @@ import json
 
 # --- Configuration ---
 # This path is relative to where you RUN the script from (the /utils folder)
-TEST_IMAGE_DIR = os.path.join('ai_service', 'test_images', 'prod1')
+TEST_IMAGE_DIR = os.path.join('ai_service', 'test_images', 'prod2')
 OUTPUT_FILE = 'postman_full_inspection_payload.json'
 
 # The reason for the return, as entered by the user.
