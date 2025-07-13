@@ -21,7 +21,7 @@
     "product_name": "LG Refrigerator",
     "brand_text": ["LG"],
     "reference_logo_path": "reference_data/logos/SKU_LG_FRIDGE.png",
-    "pristine_description": "A modern stainless steel LG refrigerator with a sleek design, featuring a top freezer and a water dispenser.",
+    "pristine_description": "A modern stainless steel LG refrigerator with a sleek design, featuring a top freezer.",
     "expected_accessories": ["Refrigerator"]
   },
 
