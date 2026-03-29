@@ -10,13 +10,14 @@ Development environment optimization and database seeding.
 | Project Structure | ✅ Done | Folders organized; GitHub repos linked |
 | Backend API | ✅ Done | Fully migrated to @Supabase SDK |
 | AI Service | ✅ Done | Flask service operational with OpenRouter |
-| Frontend App | 🏗 In-Progress | Requires refactoring for Supabase UUIDs |
+| Frontend App | ✅ Done | Refactored for Supabase UUID naming across all screens |
 | Git Setup | ✅ Done | Roots and Frontend repos synced to GitHub |
 
 
 ## Pending tasks
 - [✅] Seed Supabase database with test data (profiles, products, orders)
-- [ ] Connect Frontend to Backend API (refactor for SQL IDs)
+- [✅] Connect Frontend to Backend API (refactor for SQL IDs)
+- [✅] Refactor return flow for multi-step capture and premium failure UI
 - [ ] Deploy AI Service (Flask) to Render/Railway
 
 
@@ -33,10 +34,10 @@ Development environment optimization and database seeding.
     - **Pending:** Seed data script and frontend `_id` → `id` refactor.
 
 
-### RECAP — 2026-03-29 21:35
-- **Built:**       Populated `products` table with premium data from `brand_info.json`.
-- **Changed:**     `backend/seed.js` (now includes profiles, products, orders, and order_items).
-- **Fixed:**       Created mock user `00000000-0000-0000-0000-000000123456` in `auth.users` via SQL to allow order seeding.
-- **Pending:**     Refactor React Native frontend to fetch from Supabase (UUIDs vs MongoDB ObjectIDs).
-- **Left off at:** Database fully seeded. Backend ready for frontend integration.
+### RECAP — 2026-03-29 23:15
+- **Built:**       Premium failure screen with targeted retry functionality based on AI report.
+- **Changed:**     Refactored `failed.tsx` and `confirmPage.tsx` for smarter parameter passing (`retriedSteps`).
+- **Fixed:**       Corrected `ORDER_ID` key mismatches in `[id].tsx` navigation for Supabase schema.
+- **Pending:**     Deploy AI Service to production. Link all production env vars.
+- **Left off at:** Frontend and Backend fully refactored, integrated, and verified for Supabase. Ready for production deployment of all services.
 

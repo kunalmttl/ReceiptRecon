@@ -22,6 +22,9 @@ ReceiptRecon is an AI-powered receipt scanning and return fraud detection platfo
 - `reference_data/`: Brand info and logs for the AI service
 - `backend/seed.js`: Database initialization script
 
+## Current Status
+Backend and AI services are operational. Database has been migrated to Supabase. Frontend refactoring for UUID compatibility and multi-step return flow is complete. AI Service is ready for production deployment.
+
 ## Database Schema (Supabase)
 - `profiles`: id (UUID), email, name, created_at
 - `products`: id (UUID), name, brand, price, category, image_url, description (text), accessories (jsonb)
@@ -47,4 +50,8 @@ ReceiptRecon is an AI-powered receipt scanning and return fraud detection platfo
 ## Error log
 | Date | Error | Fix Applied |
 |------|-------|-------------|
-| 2026-03-29 | None | N/A |
+| 2026-03-29 | replace_file_content mismatch | Used multi_replace or smaller chunks for products.tsx. |
+| 2026-03-29 | _id property in key screens | Refactored to `id` (UUID) across all frontend components. |
+| 2026-03-29 | Incorrect Port in root pkg.json | Verified `.env` PORT=5000 for backend health checks. |
+| 2026-03-29 | ORDER_ID vs order_id | Normalized to `order_id` in navigation params. |
+| 2026-03-29 | Retake Flow | Implemented `retriedSteps` logic in `failed.tsx` for smarter retries. |
