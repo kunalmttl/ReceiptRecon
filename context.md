@@ -39,7 +39,7 @@ Backend and AI services are operational. Database has been migrated to Supabase.
 ## Environment variables needed
 - Backend: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `PORT`, `AI_SERVICE_URL`
 - AI Service: `OPENROUTER_API_KEY`, `YOUR_SITE_URL`, `YOUR_SITE_NAME`
-- Frontend: `BACKEND_URL`
+- Frontend: `EXPO_PUBLIC_BACKEND_URL`, `EXPO_PUBLIC_USER_ID`
 
 
 ## Deployment
@@ -55,3 +55,4 @@ Backend and AI services are operational. Database has been migrated to Supabase.
 | 2026-03-29 | Incorrect Port in root pkg.json | Verified `.env` PORT=5000 for backend health checks. |
 | 2026-03-29 | ORDER_ID vs order_id | Normalized to `order_id` in navigation params. |
 | 2026-03-29 | Retake Flow | Implemented `retriedSteps` logic in `failed.tsx` for smarter retries. |
+| 2026-03-29 | Orders not loading | Updated frontend `.env` with localhost URL and added `EXPO_PUBLIC_USER_ID`. |

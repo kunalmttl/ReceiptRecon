@@ -2,7 +2,7 @@
 Last updated: 2026-03-29
 
 ## Current active task
-Development environment optimization and database seeding.
+Production deployment preparation and environment verification.
 
 ## Feature status
 | Feature | Status | Notes |
@@ -33,6 +33,16 @@ Development environment optimization and database seeding.
     - **Fixed:** Successfully linked `d:\ReceiptRecon-App` to `kunalmttl/ReceiptRecon` and `d:\ReceiptRecon-App\frontend` to `kunalmttl/ReceiptRecon-frontend`.
     - **Pending:** Seed data script and frontend `_id` → `id` refactor.
 
+
+- [ ] Deploy AI Service (Flask) to Render/Railway
+
+
+### RECAP — 2026-03-29 23:45
+- Built:       Local development environment fixes for frontend data fetching.
+- Changed:     Updated `frontend/.env` to point to `localhost:5000` and include `EXPO_PUBLIC_USER_ID`.
+- Fixed:       Orders not loading on frontend due to incorrect backend URL and missing auth headers.
+- Pending:     Deploy AI Service to production.
+- Left off at: `frontend/.env` configured and verified with local backend.
 
 ### RECAP — 2026-03-29 23:15
 - **Built:**       Premium failure screen with targeted retry functionality based on AI report.
