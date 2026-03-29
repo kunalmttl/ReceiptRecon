@@ -1,0 +1,21 @@
+{
+  "name": "receipt-recon-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "wait-on http://localhost:5001/api/health && cd frontend && npm run start",
+    "dev:ai": "cd ai_service && python app/main.py",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:ai\" \"npm run dev:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:ai": "cd ai_service && python app/main.py",
+    "prod": "concurrently \"npm run start:backend\" \"npm run start:ai\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6"
+  }
+}

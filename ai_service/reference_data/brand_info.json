@@ -1,0 +1,64 @@
+{
+  "SKU_SAMSUNG_A73": 
+  {
+    "product_name": "Samsung A73",
+    "brand_text": ["SAMSUNG"],
+    "reference_logo_path": "reference_data/logos/SKU_SAMSUNG_A73.png",
+    "pristine_description": "A sleek mint-green Samsung smartphone with a near-edge-to-edge display, centered punch‑hole front camera, and a rectangular quad‑lens camera array on the back.",
+    "expected_accessories": ["Phone", "Mobile Charger"]
+  },
+  "SKU_NOBERO_TSHIRT":
+  {
+    "product_name": "Nobero Oversized Fit T-Shirt",
+    "brand_text": ["NOBERO"],
+    "reference_logo_path": "reference_data/logos/SKU_NOBERO_TSHIRT.png",
+    "pristine_description": "An oversized black tee featuring crisp white-and-orange space‑exploration graphics—world map, satellite schematic, status bars, and “EXPLORER III”/“ASTROSPACE” text down the back.",
+    "expected_accessories": ["T-Shirt"]
+  },
+
+  "SKU_LG_FRIDGE":
+  {
+    "product_name": "LG Refrigerator",
+    "brand_text": ["LG"],
+    "reference_logo_path": "reference_data/logos/SKU_LG_FRIDGE.png",
+    "pristine_description": "A modern stainless steel LG refrigerator with a sleek design, featuring a top freezer.",
+    "expected_accessories": ["Refrigerator"]
+  },
+
+  "SKU_BEYOUNG_TSHIRT":
+  {
+    "product_name": "BeYoung T-Shirt",
+    "brand_text": ["BEYOUNG"],
+    "reference_logo_path": "reference_data/logos/SKU_BEYOUNG_TSHIRT.png",
+    "pristine_description": "a forest-green crewneck tee short sleeves",
+    "expected_accessories": ["T-Shirt"]
+  },
+
+  "SKU_TNF_TSHIRT":
+  {
+    "product_name": "The North Face T-Shirt",
+    "brand_text": ["THE NORTH FACE"],
+    "reference_logo_path": "reference_data/logos/SKU_TNF_TSHIRT.png",
+    "pristine_description": "A sand‑beige crewneck tee emblazoned with the bold, charcoal‑gray “The North Face” logo across the chest.",
+    "expected_accessories": ["T-Shirt"]
+  },
+
+  "SKU_ADIDAS_SHOES":
+  {
+    "product_name": "Adidas Sneakers",
+    "brand_text": ["adidas"],
+    "reference_logo_path": "reference_data/logos/SKU_ADIDAS_SHOES.png",
+    "pristine_description": "A clean white low‑top Adidas sneaker featuring the signature black three stripes and logo",
+    "expected_accessories": ["Shoes"]
+  },
+    
+
+  "SKU_HELMET_YAM": 
+  {
+    "product_name": "Yamaha Steelbird Helmet",
+    "brand_text": ["YAMAHA", "Steelbird"],
+    "reference_logo_path": "reference_data/logos/SKU_HELMET_YAM.png",
+    "pristine_description": "A glossy black full-face motorcycle helmet with a clear wraparound transparent visor, Yamaha logo.",
+    "expected_accessories": ["helmet only"]
+  }
+}
