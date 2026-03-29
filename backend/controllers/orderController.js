@@ -2,175 +2,154 @@
 // backend/controllers/orderController.js
 //
 // Handles order fetching and the multi-stage AI return inspection process.
-// This controller acts as the orchestrator between the frontend, the AI
-// service, and the database.
+// Refactored for Supabase (PostgreSQL) and Gemini 2.0 AI Service.
 // ==============================================================================
 
-const Order = require('../models/orderModel');
-const axios = require('axios'); 
+const supabase = require('../config/supabase');
+const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
+/**
+ * --- CONTROLLER TO GET USER'S ORDER HISTORY ---
+ * Fetches orders and their items with product details from Supabase.
+ */
+const getMyOrders = async (req, res) => {
+  try {
+    const userId = req.user.id; // From authMiddleware
 
-// --- CONTROLLER TO GET USER'S ORDER HISTORY ---
+    // 1. Fetch orders for this user
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        purchase_date,
+        created_at,
+        order_items (
+          id,
+          quantity,
+          price_at_purchase,
+          return_status,
+          products (
+            id,
+            name,
+            brand,
+            price,
+            image_url,
+            sku
+          )
+        )
+      `)
+      .eq('user_id', userId)
+      .order('purchase_date', { ascending: false });
 
-const getMyOrders = async (req, res) => 
-{
-  try 
-  {
-    const orders = await Order.find({ user: req.user.id }).populate('purchasedItems.product');
+    if (ordersError) throw ordersError;
+
+    // 2. Format to match legacy frontend expectations (if needed)
     res.json(orders);
-  } 
-  catch (error) 
-  {
+  } catch (error) {
     console.error(`Error in getMyOrders: ${error.message}`);
     res.status(500).json({ message: 'Server Error fetching orders.' });
   }
 };
 
-
-// ==============================================================================
-// --- CORE CONTROLLER FOR THE RETURN PROCESS ---
-// ==============================================================================
-
-const initiateReturn = async (req, res) => 
-{ 
-  try 
-  {
-    // --- 1. DATA VALIDATION & EXTRACTION ---
-
-    const { orderId, itemId } = req.params; 
+/**
+ * --- CORE CONTROLLER FOR THE RETURN PROCESS ---
+ * Orchestrates multi-image AI inspection and database status updates.
+ */
+const initiateReturn = async (req, res) => {
+  try {
+    const { orderId, itemId } = req.params;
     const { reason, base64_images_encoding } = req.body;
 
-    
-    // validation
-    if (!Array.isArray(base64_images_encoding) || base64_images_encoding.length !== 3) 
-    {
+    // 1. Basic Validation
+    if (!Array.isArray(base64_images_encoding) || base64_images_encoding.length !== 3) {
       return res.status(400).json({ message: "Invalid image data format. Expected an array of 3 elements." });
     }
+
     const [tagPhotoArr, photos360Arr, accessoryPhotosArr] = base64_images_encoding;
-    if (photos360Arr.length !== 4) 
-    {
-       return res.status(400).json({ message: "Invalid image data format. Expected 4 condition photos." });
-    }
-    
-    // --- 2. DATABASE VALIDATION (90-DAY CHECK & ITEM CHECK) ---
-    
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
 
+    // 2. Fetch Order Item and Product details from Supabase
+    const { data: orderItem, error: itemError } = await supabase
+      .from('order_items')
+      .select(`
+        id,
+        order_id,
+        return_status,
+        orders ( purchase_date ),
+        products ( id, sku, name )
+      `)
+      .eq('id', itemId)
+      .eq('order_id', orderId)
+      .single();
 
-    // find the *specific* sub-document ID within the `purchasedItems` array for that order.
-    const itemToReturn = order.purchasedItems.find(item => item._id.toString() === itemId);
-
-    if (!itemToReturn) 
-    {
-      return res.status(404).json({ message: 'This specific product was not found in the specified order.' });
+    if (itemError || !orderItem) {
+      return res.status(404).json({ message: 'Order item not found.' });
     }
 
-    await order.populate('purchasedItems.product');
-
-    
-    // Check if the item has already been returned
-    if (itemToReturn.returnInfo && itemToReturn.returnInfo.status !== 'NONE') 
-    {
-      return res.status(400).json({ success: false, message: 'A return has already been processed for this item.' });
-    }
-
-    // Perform the 90-day return window check
-    const purchaseDate = order.purchaseDate;
+    // 3. Return Window Check (90 Days)
+    const purchaseDate = new Date(orderItem.orders.purchase_date);
     const currentDate = new Date();
     const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
+    
     if (currentDate - purchaseDate > ninetyDaysInMs) {
       return res.status(403).json({ success: false, message: 'This item is outside the 90-day return window.' });
     }
 
-    // --- 3. ORCHESTRATE THE AI INSPECTION ---
+    if (orderItem.return_status !== 'NONE') {
+      return res.status(400).json({ success: false, message: 'A return has already been processed for this item.' });
+    }
 
-    console.log(`Starting AI inspection for SKU: ${itemToReturn.product.sku}...`);
+    // 4. Orchestrate AI Inspection
+    console.log(`Starting AI inspection for SKU: ${orderItem.products.sku}...`);
 
-    // Prepare the payload for our AI service's `/full-inspection` endpoint
-    const aiPayload = 
-    {
-        sku: itemToReturn.product.sku, // Use the stable SKU for the AI service
-        branding_image_b64: tagPhotoArr[0], // The first image is for branding
-        condition_images_b64: photos360Arr, // The array of 4 condition images
-        contents_image_b64: accessoryPhotosArr[0], // The final image is for contents
+    const aiPayload = {
+      sku: orderItem.products.sku,
+      branding_image_b64: tagPhotoArr[0],
+      condition_images_b64: photos360Arr,
+      contents_image_b64: accessoryPhotosArr[0],
     };
-    
-    // Call the deployed Python AI service
+
     const aiResponse = await axios.post(`${process.env.AI_SERVICE_URL}/full-inspection`, aiPayload);
-    
-    // Extract the final decision and detailed stages from the AI's response
     const { overall_passed, stages } = aiResponse.data;
 
-    // --- 4. FINALIZE THE RETURN BASED ON AI'S DECISION ---
-    
+    // 5. Finalize based on AI decision
+    const status = overall_passed ? 'APPROVED' : 'REJECTED';
+    const returnId = overall_passed ? uuidv4() : null;
+    const inspectionNotes = overall_passed 
+      ? "AI inspection passed all stages." 
+      : `AI Rejected: ${Object.values(stages).filter(s => !s.passed).map(s => s.reason).join('; ')}`;
+
+    // Update database
+    const { error: updateError } = await supabase
+      .from('order_items')
+      .update({ 
+        return_status: status,
+        return_id: returnId,
+        return_notes: inspectionNotes
+      })
+      .eq('id', itemId);
+
+    if (updateError) throw updateError;
+
     if (overall_passed) {
-      // AI check passed! The return is APPROVED.
-      const returnId = uuidv4();
-
-      itemToReturn.returnInfo = 
-      {
-        status: 'APPROVED',
-        reason: reason, // The reason the user provided
-        inspectionNotes: "AI inspection passed all stages.", // Add a note for reference
-        returnInitiatedAt: new Date(),
-        returnId: returnId
-      };
-      
-      await order.save(); // Save the updated order status to the database
-      
-      console.log(`Return APPROVED for SKU: ${itemToReturn.product.sku}`);
-      
-      res.status(200).json({ 
-          success: true, 
-          message: 'Return Approved. Please show this QR code at the store.',
-          qrCodeData: returnId,
-          details: stages // Optionally pass back the full AI report
+      res.status(200).json({
+        success: true,
+        message: 'Return Approved. Please show this QR code at the store.',
+        qrCodeData: returnId,
+        details: stages
       });
-
-    } 
-    else 
-    {
-      // AI check failed! The return is REJECTED.
-      // We will save the detailed reasons from the AI for auditing purposes.
-      const rejectionReason = [
-        stages.branding_verification.passed ? null : stages.branding_verification.reason,
-        stages.condition_verification.passed ? null : stages.condition_verification.reason,
-        stages.contents_verification.passed ? null : stages.contents_verification.reason
-      ].filter(Boolean).join('; '); // Join reasons with a semicolon
-
-      itemToReturn.returnInfo = {
-        status: 'REJECTED',
-        reason: reason,
-        inspectionNotes: `AI Rejected: ${rejectionReason}`, // Save the failure reason
-        returnInitiatedAt: new Date(),
-        returnId: null // No return ID is generated
-      };
-
-      await order.save();
-
-      console.log(`Return REJECTED for SKU: ${itemToReturn.product.sku}. Reason: ${rejectionReason}`);
-
-      res.status(400).json({ 
-          success: false, 
-          message: `Return Denied. ${rejectionReason}`, // Send a clear reason to the frontend
-          details: stages // Send the full report for detailed display if needed
+    } else {
+      res.status(400).json({
+        success: false,
+        message: `Return Denied. ${inspectionNotes}`,
+        details: stages
       });
     }
 
   } catch (error) {
-    // This is a robust error handler for unexpected crashes.
     console.error("An unexpected error occurred in initiateReturn:", error);
-    // If the error came from the axios call, the response might contain more info
-    if (error.response) {
-      console.error("Error data from AI service:", error.response.data);
-    }
-    res.status(500).json({ message: 'Server error during the return process. Please try again later.' });
+    res.status(500).json({ message: 'Server error during the return process.' });
   }
 };
-
 
 module.exports = { getMyOrders, initiateReturn };
