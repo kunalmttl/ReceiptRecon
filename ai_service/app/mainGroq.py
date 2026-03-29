@@ -367,18 +367,13 @@ def run_standalone_test():
         print(f"\n🔥 An unexpected error occurred during the test: {e}")
 
 
-@app.route("/", methods=["GET"])
-def health_check():
-    return jsonify({"status": "AI Service running"}), 200
-
 # ==============================================================================
 # --- APPLICATION ENTRY POINT ---
 # ==============================================================================
 if __name__ == '__main__':
     # Use this to test the logic locally. It requires the 'test_images/prod1/' folder
     # to be set up with all 6 required images.
-    # run_standalone_test()
+    run_standalone_test()
     
     # Use this to run the actual Flask web server for the Node.js backend to call.
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    # app.run(host='0.0.0.0', port=5000, debug=False)

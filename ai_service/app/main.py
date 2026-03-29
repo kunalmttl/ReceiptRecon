@@ -42,7 +42,7 @@ AI_MODEL_NAME = "google/gemini-2.0-flash-exp:free"
 # Load the "Ground Truth" database on startup.
 brand_info_path = os.path.join(base_dir, 'reference_data', 'brand_info.json')
 try:
-    with open(brand_info_path, 'r', encoding='utf-8') as f:
+    with open(brand_info_path, 'r') as f:
         brand_database = json.load(f)
 except FileNotFoundError:
     print(f"FATAL ERROR: brand_info.json not found at {brand_info_path}")
@@ -323,10 +323,6 @@ def run_standalone_test():
         print(f"\n🔥 An unexpected error occurred during the test: {e}")
 
 
-@app.route("/", methods=["GET"])
-def health_check():
-    return jsonify({"status": "AI Service running"}), 200
-
 # ==============================================================================
 # --- APPLICATION ENTRY POINT ---
 # ==============================================================================
@@ -336,5 +332,4 @@ if __name__ == '__main__':
     # run_standalone_test()
     
     # Use this to run the actual Flask web server for the Node.js backend to call.
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)

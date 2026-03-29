@@ -1,4 +1,12 @@
-const supabase = require('../config/db');
+// ==============================================================================
+// backend/controllers/orderController.js
+//
+// Handles order fetching and the multi-stage AI return inspection process.
+// This controller acts as the orchestrator between the frontend, the AI
+// service, and the database.
+// ==============================================================================
+
+const Order = require('../models/orderModel');
 const axios = require('axios'); 
 const { v4: uuidv4 } = require('uuid');
 
@@ -9,18 +17,7 @@ const getMyOrders = async (req, res) =>
 {
   try 
   {
-    const { data: orders, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items (
-          *,
-          products (*)
-        )
-      `)
-      .eq('user_id', req.user.id);
-
-    if (error) throw error;
+    const orders = await Order.find({ user: req.user.id }).populate('purchasedItems.product');
     res.json(orders);
   } 
   catch (error) 
@@ -31,6 +28,9 @@ const getMyOrders = async (req, res) =>
 };
 
 
+// ==============================================================================
+// --- CORE CONTROLLER FOR THE RETURN PROCESS ---
+// ==============================================================================
 
 const initiateReturn = async (req, res) => 
 { 
@@ -41,6 +41,7 @@ const initiateReturn = async (req, res) =>
     const { orderId, itemId } = req.params; 
     const { reason, base64_images_encoding } = req.body;
 
+    
     // validation
     if (!Array.isArray(base64_images_encoding) || base64_images_encoding.length !== 3) 
     {
@@ -54,34 +55,31 @@ const initiateReturn = async (req, res) =>
     
     // --- 2. DATABASE VALIDATION (90-DAY CHECK & ITEM CHECK) ---
     
-    const { data: orderItem, error: fetchError } = await supabase
-      .from('order_items')
-      .select(`
-        *,
-        orders (id, user_id, purchase_date),
-        products (id, name, sku)
-      `)
-      .eq('id', itemId)
-      .eq('order_id', orderId)
-      .single();
-
-    if (fetchError || !orderItem) {
-      return res.status(404).json({ message: 'Order item not found in the specified order' });
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check ownership
-    if (orderItem.orders.user_id !== req.user.id) {
-       return res.status(403).json({ message: 'You are not authorized to return this item' });
+
+    // find the *specific* sub-document ID within the `purchasedItems` array for that order.
+    const itemToReturn = order.purchasedItems.find(item => item._id.toString() === itemId);
+
+    if (!itemToReturn) 
+    {
+      return res.status(404).json({ message: 'This specific product was not found in the specified order.' });
     }
+
+    await order.populate('purchasedItems.product');
+
     
     // Check if the item has already been returned
-    if (orderItem.return_status && orderItem.return_status !== 'NONE') 
+    if (itemToReturn.returnInfo && itemToReturn.returnInfo.status !== 'NONE') 
     {
       return res.status(400).json({ success: false, message: 'A return has already been processed for this item.' });
     }
 
     // Perform the 90-day return window check
-    const purchaseDate = new Date(orderItem.orders.purchase_date);
+    const purchaseDate = order.purchaseDate;
     const currentDate = new Date();
     const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
     if (currentDate - purchaseDate > ninetyDaysInMs) {
@@ -90,12 +88,12 @@ const initiateReturn = async (req, res) =>
 
     // --- 3. ORCHESTRATE THE AI INSPECTION ---
 
-    console.log(`Starting AI inspection for SKU: ${orderItem.products.sku}...`);
+    console.log(`Starting AI inspection for SKU: ${itemToReturn.product.sku}...`);
 
     // Prepare the payload for our AI service's `/full-inspection` endpoint
     const aiPayload = 
     {
-        sku: orderItem.products.sku, // Use the stable SKU for the AI service
+        sku: itemToReturn.product.sku, // Use the stable SKU for the AI service
         branding_image_b64: tagPhotoArr[0], // The first image is for branding
         condition_images_b64: photos360Arr, // The array of 4 condition images
         contents_image_b64: accessoryPhotosArr[0], // The final image is for contents
@@ -113,20 +111,18 @@ const initiateReturn = async (req, res) =>
       // AI check passed! The return is APPROVED.
       const returnId = uuidv4();
 
-      const { error: updateError } = await supabase
-        .from('order_items')
-        .update({
-          return_status: 'APPROVED',
-          return_reason: reason,
-          inspection_notes: "AI inspection passed all stages.",
-          return_initiated_at: new Date(),
-          return_id: returnId
-        })
-        .eq('id', itemId);
+      itemToReturn.returnInfo = 
+      {
+        status: 'APPROVED',
+        reason: reason, // The reason the user provided
+        inspectionNotes: "AI inspection passed all stages.", // Add a note for reference
+        returnInitiatedAt: new Date(),
+        returnId: returnId
+      };
       
-      if (updateError) throw updateError;
+      await order.save(); // Save the updated order status to the database
       
-      console.log(`Return APPROVED for SKU: ${orderItem.products.sku}`);
+      console.log(`Return APPROVED for SKU: ${itemToReturn.product.sku}`);
       
       res.status(200).json({ 
           success: true, 
@@ -146,19 +142,17 @@ const initiateReturn = async (req, res) =>
         stages.contents_verification.passed ? null : stages.contents_verification.reason
       ].filter(Boolean).join('; '); // Join reasons with a semicolon
 
-      const { error: updateError } = await supabase
-        .from('order_items')
-        .update({
-          return_status: 'REJECTED',
-          return_reason: reason,
-          inspection_notes: `AI Rejected: ${rejectionReason}`,
-          return_initiated_at: new Date()
-        })
-        .eq('id', itemId);
+      itemToReturn.returnInfo = {
+        status: 'REJECTED',
+        reason: reason,
+        inspectionNotes: `AI Rejected: ${rejectionReason}`, // Save the failure reason
+        returnInitiatedAt: new Date(),
+        returnId: null // No return ID is generated
+      };
 
-      if (updateError) throw updateError;
+      await order.save();
 
-      console.log(`Return REJECTED for SKU: ${orderItem.products.sku}. Reason: ${rejectionReason}`);
+      console.log(`Return REJECTED for SKU: ${itemToReturn.product.sku}. Reason: ${rejectionReason}`);
 
       res.status(400).json({ 
           success: false, 
@@ -179,4 +173,4 @@ const initiateReturn = async (req, res) =>
 };
 
 
-module.exports = { getMyOrders, initiateReturn };
+module.exports = { getMyOrders, initiateReturn };
