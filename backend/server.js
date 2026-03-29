@@ -1,10 +1,12 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+
+// Load environment variables immediately
+dotenv.config();
+
 const supabase = require('./config/db');
 const orderRoutes = require('./routes/orderRoutes'); 
-
-dotenv.config();
 
 const app = express();
 

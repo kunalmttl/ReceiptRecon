@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "wait-on http://localhost:5001/api/health && cd frontend && npm run start",
+    "dev:frontend": "wait-on http://localhost:5000/api/health && cd frontend && npm run start",
     "dev:ai": "cd ai_service && python app/main.py",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:ai\" \"npm run dev:frontend\"",
     "start:backend": "cd backend && npm start",

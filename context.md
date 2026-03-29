@@ -5,22 +5,33 @@ Created: 2026-03-29
 ReceiptRecon is an AI-powered receipt scanning and return fraud detection platform. It consists of a React Native (Expo) frontend, a Node.js (Express) backend, and a Python (Flask) AI service for OCR and image analysis.
 
 ## Tech stack
-- Frontend: React Native (Expo), Zusyand, Axios
-- Backend: Node.js (Express), Supabase (PostgreSQL)
+- Frontend: React Native (Expo), Zustand (not Zusyand), Axios
+- Backend: Node.js (Express)
 - AI Service: Python (Flask), Gemini 2.0 Flash (via OpenRouter)
 - Database: Supabase (PostgreSQL)
-- Deployment: Vercel (frontend) / Render (backend) [Planned]
+- Deployment: Vercel (frontend) / Render (backend)
 
+## Repositories
+- **Root (Backend + AI):** [kunalmttl/ReceiptRecon](https://github.com/kunalmttl/ReceiptRecon)
+- **Frontend:** [kunalmttl/ReceiptRecon-frontend](https://github.com/kunalmttl/ReceiptRecon-frontend)
 
 ## Project structure
-- `frontend/`: Expo (React Native) mobile application
-- `backend/`: Node.js Express API server
-- `ai_service/`: Python Flask service for AI processing
+- `backend/`: Node.js Express API server (Root Repo) - Port 5000
+- `ai_service/`: Python Flask service for AI processing (Root Repo) - Port 5002
+- `frontend/`: Expo (React Native) mobile application (Frontend Repo - Git Subdirectory)
 - `reference_data/`: Brand info and logs for the AI service
+- `backend/seed.js`: Database initialization script
+
+## Database Schema (Supabase)
+- `profiles`: id (UUID), email, name, created_at
+- `products`: id (UUID), name, brand, price, category, image_url, description (text), accessories (jsonb)
+- `orders`: id (UUID), user_id, purchase_date, created_at
+- `order_items`: id (UUID), order_id, product_id, quantity, price_at_purchase, return_status
 
 ## Key decisions
-- Using OpenRouter to access Gemini 2.0 Flash for low-cost, high-performance image analysis.
-- Multi-repo structure in a single workspace (mono-repo style).
+- **Supabase Migration:** Replaced MongoDB with Supabase for relational data handling (PostgreSQL) and better authentication integration.
+- **Repository Strategy:** Separated Frontend and Backend/AI into independent GitHub repositories for cleaner deployment workflows.
+- **AI Choice:** Using OpenRouter to access Gemini 2.0 Flash for low-cost, high-performance image analysis.
 
 ## Environment variables needed
 - Backend: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `PORT`, `AI_SERVICE_URL`
