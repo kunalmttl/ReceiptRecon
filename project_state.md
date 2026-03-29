@@ -41,7 +41,7 @@ Production deployment monitoring and final validation.
 - Fixed:       Backend crash on Render due to missing `MONGO_URI` (obsolete).
 - Pending:     Deploy AI Service to production.
 - Left off at: Backend now runs exclusively on Supabase in production. Ready for next phase.
-→ Pushed: chore: complete removal of legacy MongoDB code and update project state at 2026-03-30 00:05
+→ Pushed: fix: total purge of legacy Mongoose models and imports to resolve Render crash at 2026-03-30 00:20
 
 ### RECAP — 2026-03-29 23:45
 - Built:       Local development environment fixes for frontend data fetching.
