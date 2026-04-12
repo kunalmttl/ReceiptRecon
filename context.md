@@ -50,6 +50,11 @@ Backend and AI services are operational. Database has been migrated to Supabase.
 ## Error log
 | Date | Error | Fix Applied |
 |------|-------|-------------|
+| 2026-04-12 | Orders not loading (Supabase) | Switched to SERVICE_ROLE_KEY to bypass RLS for custom header-based auth. |
+| 2026-04-12 | Security Vulnerabilities | Patched Critical (Axios) and High (Lodash) vulnerabilities across Root, Backend, and Frontend using overrides and direct bumps. |
+| 2026-04-12 | UnicodeDecodeError in AI Service | Specified encoding='utf-8' in open() call for brand_info.json in main.py. |
+| 2026-04-12 | Port Conflict (5000) | Reassigned AI Service to port 5002 in main.py to allow Backend to run on 5000. |
+| 2026-04-12 | wait-on hanging | Added /api/health endpoint to backend/server.js to satisfy development startup dependencies. |
 | 2026-03-29 | replace_file_content mismatch | Used multi_replace or smaller chunks for products.tsx. |
 | 2026-03-29 | _id property in key screens | Refactored to `id` (UUID) across all frontend components. |
 | 2026-03-29 | Incorrect Port in root pkg.json | Verified `.env` PORT=5000 for backend health checks. |

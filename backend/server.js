@@ -26,6 +26,11 @@ app.get('/', (req, res) => {
   res.send('Receipt Recon API is running...');
 });
 
+// --- HEALTH CHECK FOR WAIT-ON ---
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 
 const PORT = process.env.PORT || 5001;
 

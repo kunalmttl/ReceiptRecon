@@ -25,15 +25,21 @@ Production deployment monitoring and final validation.
 - Flask AI service uses OpenRouter with a specific Gemini model which may need monitoring for rate limits.
 
 ## RECAP log
-- 2026-03-30: Completed the full removal of legacy MongoDB/Mongoose logic (cleanup of `server.js`, `package.json`, and `db.js`).
-- 2026-03-29: Antigravity initialized context files (`context.md`, `project_state.md`).
-- 2026-03-29: Completed MongoDB to Supabase migration. Refactored backend, updated .env, and deleted legacy models.
-- 2026-03-29: **RECAP — Migration & Git Linkage**
-    - **Built:** Relational SQL schema in Supabase (profiles, products, orders).
-    - **Changed:** Refactored `backend/controllers/orderController.js` and `authMiddleware.js` to use Supabase SDK instead of Mongoose.
-    - **Fixed:** Successfully linked `d:\ReceiptRecon-App` to `kunalmttl/ReceiptRecon` and `d:\ReceiptRecon-App\frontend` to `kunalmttl/ReceiptRecon-frontend`.
-    - **Pending:** Seed data script and frontend `_id` → `id` refactor.
+### RECAP — 2026-04-12 14:30
+- Built:       Supabase connectivity and stability fixes.
+- Changed:     `backend/config/supabase.js`: Switched to `SERVICE_ROLE_KEY` to bypass RLS.
+- Fixed:       Orders not loading on frontend due to RLS blocking anonymous requests.
+- Verified:    Backend API now returns correct user orders via test script.
+- Pending:     Deploy AI Service to production.
 
+### RECAP — 2026-04-12 14:15
+- Built:       Security hardening and stability fixes.
+- Changed:     `package.json`: Added `overrides` for `axios` and `lodash` (Root); Updated `axios` to `^1.15.0` (Backend/Frontend).
+- Fixed:       Eliminated all Critical and High security vulnerabilities (Axios SSRF, Lodash Prototype Pollution) across all three 0.3.0 modules.
+- Verified:    `npm audit` now returns 0 vulnerabilities for Root, Backend, and Frontend.
+- Pending:     Deploy AI Service to production.
+
+### RECAP — 2026-04-12 14:05
 
 ### RECAP — 2026-03-30 00:05
 - Built:       Final cleanup of legacy and redundant MongoDB code.
