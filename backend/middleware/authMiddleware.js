@@ -8,9 +8,13 @@ const protect = async (req, res, next) => {
   let userId;
   
   // We'll pass the user ID in a custom header (e.g., from Postman or Frontend)
-  if (req.headers['x-user-id'] || req.headers['authorization']) {
+  const headerUserId = req.headers['x-user-id'];
+  const authHeader = req.headers['authorization'];
+  
+  if (headerUserId || authHeader) {
     try {
-      userId = req.headers['x-user-id'] || req.headers['authorization'];
+      userId = headerUserId || authHeader;
+      console.log(`🔍 Auth Middleware: Checking ID [${userId}]`);
 
       // Note: In a real Supabase Auth setup, we'd use supabase.auth.getUser(token)
       // For this project stage, we're using the UUID provided in the request.
@@ -22,6 +26,7 @@ const protect = async (req, res, next) => {
         .single();
 
       if (error || !user) {
+        console.warn(`⚠️ Auth Middleware: User not found for ID [${userId}]. Error: ${error?.message || 'None'}`);
         return res.status(401).json({ message: 'Not authorized, user not found' });
       }
 
