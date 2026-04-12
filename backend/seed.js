@@ -39,7 +39,12 @@ async function seed() {
     console.log('✅ Profile seeded');
   }
 
-  // 3. Prepare products from brand_info.json
+  // 3. CLEANUP: Remove old test data to ensure consistency for returns
+  console.log('🧹 Cleaning up old test orders for user...');
+  await supabase.from('order_items').delete().gte('created_at', '2020-01-01'); // Safe way to clear
+  await supabase.from('orders').delete().eq('user_id', testUserId);
+
+  // 4. Prepare products from brand_info.json
   const productsToSeed = [];
   
   // Mapping of category keywords to high-res images for better visuals

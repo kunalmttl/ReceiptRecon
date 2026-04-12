@@ -69,22 +69,40 @@ const initiateReturn = async (req, res) => {
     const [tagPhotoArr, photos360Arr, accessoryPhotosArr] = base64_images_encoding;
 
     // 2. Fetch Order Item and Product details from Supabase
+    console.log('\n--- 📥 RETURN INITIATION LOG ---');
+    console.log('ORDER ID:', orderId);
+    console.log('ITEM ID:', itemId);
+    console.log('-------------------------------\n');
+
     const { data: orderItem, error: itemError } = await supabase
       .from('order_items')
       .select(`
         id,
         order_id,
         return_status,
-        orders ( purchase_date ),
-        products ( id, sku, name )
+        orders!inner ( purchase_date ),
+        products!inner ( id, sku, name )
       `)
       .eq('id', itemId)
       .eq('order_id', orderId)
       .single();
 
     if (itemError || !orderItem) {
-      return res.status(404).json({ message: 'Order item not found.' });
+      console.error('❌ RETURN ERROR: Record not found or database mismatch.');
+      if (itemError) console.error('Supabase Query Error:', itemError.message);
+      
+      // Additional check: Does the item exist even if it doesn't belong to the order?
+      const { data: itemCheck } = await supabase.from('order_items').select('id, order_id').eq('id', itemId).single();
+      if (itemCheck) {
+        console.warn(`⚠️ DEBUG: Item ${itemId} exists but belongs to Order: ${itemCheck.order_id} (Expected: ${orderId})`);
+      } else {
+        console.warn(`⚠️ DEBUG: Item ${itemId} does not exist in the database at all.`);
+      }
+
+      return res.status(404).json({ message: 'Order item not found or cross-order mismatch.' });
     }
+
+    console.log("✅ [initiateReturn] Order Item found:", orderItem.products.name);
 
     // 3. Return Window Check (90 Days)
     const purchaseDate = new Date(orderItem.orders.purchase_date);
@@ -125,7 +143,9 @@ const initiateReturn = async (req, res) => {
       .update({ 
         return_status: status,
         return_id: returnId,
-        return_notes: inspectionNotes
+        return_notes: inspectionNotes,
+        return_reason: reason,
+        return_initiated_at: new Date().toISOString()
       })
       .eq('id', itemId);
 
@@ -147,8 +167,12 @@ const initiateReturn = async (req, res) => {
     }
 
   } catch (error) {
-    console.error("An unexpected error occurred in initiateReturn:", error);
-    res.status(500).json({ message: 'Server error during the return process.' });
+    console.error("❌ CRITICAL ERROR in initiateReturn:", error);
+    res.status(500).json({ 
+      message: 'Server error during the return process.',
+      error: error.message,
+      stack: error.stack
+    });
   }
 };
 

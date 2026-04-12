@@ -2,7 +2,7 @@
 Last updated: 2026-03-30
 
 ## Current active task
-Production deployment monitoring and final validation.
+Production deployment of AI Service and final integration testing.
 
 ## Feature status
 | Feature | Status | Notes |
@@ -11,6 +11,7 @@ Production deployment monitoring and final validation.
 | Backend API | ✅ Done | Fully migrated to @Supabase SDK |
 | AI Service | ✅ Done | Flask service operational with OpenRouter |
 | Frontend App | ✅ Done | Refactored for Supabase UUID naming across all screens |
+| Return Flow | ✅ Done | AI-powered multi-stage inspection fully operational |
 | Git Setup | ✅ Done | Roots and Frontend repos synced to GitHub |
 
 
@@ -61,4 +62,14 @@ Production deployment monitoring and final validation.
 - **Changed:**     Refactored `failed.tsx` and `confirmPage.tsx` for smarter parameter passing (`retriedSteps`).
 - **Fixed:**       Corrected `ORDER_ID` key mismatches in `[id].tsx` navigation for Supabase schema.
 - **Pending:**     Deploy AI Service to production. Link all production env vars.
-- **Left off at:** Frontend and Backend fully refactored, integrated, and verified for Supabase. Ready for production deployment of all services.
+- **Left off at:** Return flow fully operational (fixed backend connection and schema issues). Ready for AI Service deployment.
+
+### RECAP — 2026-04-12 16:30
+- Built:       Fixed and fully verified AI return inspection flow.
+- Changed:     `backend/.env`: Pointed `AI_SERVICE_URL` to `127.0.0.1` (IPv4) to fix Node lookup errors.
+- Changed:     `backend/controllers/orderController.js`: Exhumed schema mismatch issues and added missing data persistence.
+- Changed:     Supabase Schema: Added `return_notes` column to `order_items`.
+- Fixed:       `ECONNREFUSED ::1:5002` (IPv6 mismatch) and `column "return_notes" does not exist`.
+- Pending:     Deploy AI Service to production (Render/Railway).
+- Left off at: `orderController.js` correctly orchestrating full inspection and updating DB.
+

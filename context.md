@@ -29,7 +29,7 @@ Backend and AI services are operational. Database has been migrated to Supabase.
 - `profiles`: id (UUID), email, name, created_at
 - `products`: id (UUID), name, brand, price, category, image_url, description (text), accessories (jsonb)
 - `orders`: id (UUID), user_id, purchase_date, created_at
-- `order_items`: id (UUID), order_id, product_id, quantity, price_at_purchase, return_status
+- `order_items`: id (UUID), order_id, product_id, quantity, price_at_purchase, return_status, return_reason, return_notes, return_initiated_at
 
 ## Key decisions
 - **Supabase Migration:** Replaced MongoDB with Supabase for relational data handling (PostgreSQL) and better authentication integration.
@@ -50,6 +50,9 @@ Backend and AI services are operational. Database has been migrated to Supabase.
 ## Error log
 | Date | Error | Fix Applied |
 |------|-------|-------------|
+| 2026-04-12 | `ECONNREFUSED ::1:5002` | Updated backend `.env` to use `127.0.0.1` instead of `localhost` to bypass IPv6 resolution mismatch. |
+| 2026-04-12 | Missing `return_notes` column | Applied Supabase migration to add `return_notes` column to `order_items` table. |
+| 2026-04-12 | Order Item Not Found (404) | Refined `initiateReturn` controller with better logging and explicit order ID verification. |
 | 2026-04-12 | Orders not loading (Supabase) | Switched to SERVICE_ROLE_KEY to bypass RLS for custom header-based auth. |
 | 2026-04-12 | Security Vulnerabilities | Patched Critical (Axios) and High (Lodash) vulnerabilities across Root, Backend, and Frontend using overrides and direct bumps. |
 | 2026-04-12 | UnicodeDecodeError in AI Service | Specified encoding='utf-8' in open() call for brand_info.json in main.py. |

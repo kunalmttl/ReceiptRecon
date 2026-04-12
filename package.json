@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "wait-on http://localhost:5000/api/health && cd frontend && npm run start",
+    "dev:frontend": "cd frontend && npx expo start --clear",
     "dev:ai": "cd ai_service && python app/main.py",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:ai\" \"npm run dev:frontend\"",
+    "dev": "concurrently --kill-others --prefix \"[{name}]\" --names \"BACKEND,AI,MOBILE\" --prefix-colors \"blue,magenta,cyan\" \"npm run dev:backend\" \"npm run dev:ai\" \"npm run dev:frontend\"",
     "start:backend": "cd backend && npm start",
     "start:ai": "cd ai_service && python app/main.py",
     "prod": "concurrently \"npm run start:backend\" \"npm run start:ai\""
