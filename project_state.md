@@ -72,4 +72,5 @@ Production deployment of AI Service and final integration testing.
 - Fixed:       `ECONNREFUSED ::1:5002` (IPv6 mismatch) and `column "return_notes" does not exist`.
 - Pending:     Deploy AI Service to production (Render/Railway).
 - Left off at: `orderController.js` correctly orchestrating full inspection and updating DB.
+→ Pushed: fix: resolve return flow connection issues and database schema mismatch at 2026-04-12 16:35
 
